@@ -541,8 +541,54 @@ function ScrollProgress() {
   return <motion.span className="scroll-progress" style={{ scaleX }} aria-hidden="true" />;
 }
 
+const EMAIL = "abhidhautre@gmail.com";
+
 /**
- * Ambient world. Three fixed layers behind all content: a slow lime aura, a
+ * A mailto: link silently does nothing when the visitor has no mail client
+ * registered — common on Windows without Outlook configured, and in locked
+ * down or in-app browsers. So we attempt the mailto and watch for the page
+ * losing focus; if that never happens the mail app never opened, and we fall
+ * back to copying the address so the visitor always ends up with a way to
+ * reach me.
+ */
+function useMailTo() {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const open = useCallback((subject: string, body: string) => {
+    const href = `mailto:${EMAIL}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    let opened = false;
+    const onBlur = () => {
+      opened = true;
+    };
+    window.addEventListener("blur", onBlur, { once: true });
+
+    window.location.href = href;
+
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(async () => {
+      window.removeEventListener("blur", onBlur);
+      if (opened) return;
+      // no mail client took it — put the address on the clipboard instead
+      try {
+        await navigator.clipboard.writeText(EMAIL);
+      } catch {
+        /* clipboard blocked; the visible address below is still selectable */
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 4000);
+    }, 1400);
+  }, []);
+
+  return { open, copied };
+}
+
+/** Ambient world. Three fixed layers behind all content: a slow lime aura, a
  * barely-there grid, and film grain. All extremely low contrast — the point
  * is that the page feels alive, not that you notice the background.
  * Painted with CSS only; no canvas, no particles, no JS loop.
@@ -1044,6 +1090,9 @@ export default function Home() {
   /* Magnetic primary actions — capped at 8px so they lean, not chase */
   const heroCta = useMagnetic(finePointer, 8);
   const contactCta = useMagnetic(finePointer, 10);
+  const mail = useMailTo();
+  const navMail = useMailTo();
+  const heroMail = useMailTo();
 
   const activeSection = useActiveSection(NAV_IDS);
   const spotlight = useSpotlight(finePointer);
@@ -1131,7 +1180,18 @@ export default function Home() {
             </a>
           ))}
         </div>
-        <a className="nav-button" href="mailto:abhidhautre@gmail.com" data-cursor="OPEN ↗" data-mode="open">
+        <a
+          className="nav-button"
+          href={`mailto:${EMAIL}?subject=${encodeURIComponent(
+            "Hello"
+          )}&body=${encodeURIComponent("Hi Abhishek,\n\n")}`}
+          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault();
+            navMail.open("Hello", "Hi Abhishek,\n\n");
+          }}
+          data-cursor="OPEN ↗"
+          data-mode="open"
+        >
           Let&apos;s talk <ArrowUpRight size={15} />
         </a>
       </motion.nav>
@@ -1211,7 +1271,18 @@ export default function Home() {
             >
               View selected work <ArrowUpRight size={16} />
             </motion.a>
-            <a className="text-button" href="mailto:abhidhautre@gmail.com" data-cursor="OPEN ↗" data-mode="open">
+            <a
+              className="text-button"
+              href={`mailto:${EMAIL}?subject=${encodeURIComponent(
+                "Hello"
+              )}&body=${encodeURIComponent("Hi Abhishek,\n\n")}`}
+              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                e.preventDefault();
+                heroMail.open("Hello", "Hi Abhishek,\n\n");
+              }}
+              data-cursor="OPEN ↗"
+              data-mode="open"
+            >
               Get in touch
             </a>
           </motion.div>
@@ -1903,27 +1974,53 @@ export default function Home() {
           <motion.div className="contact-actions" variants={riseUp}>
             <motion.a
               className="contact-cta"
-              href="mailto:abhidhautre@gmail.com"
+              href={`mailto:${EMAIL}?subject=${encodeURIComponent(
+                "Project enquiry"
+              )}&body=${encodeURIComponent(
+                "Hi Abhishek,\n\nI'd like to talk about a project.\n\n"
+              )}`}
+              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                // keep default navigation (opens the mail app when present)
+                // and run the fallback check alongside it
+                e.preventDefault();
+                mail.open(
+                  "Project enquiry",
+                  "Hi Abhishek,\n\nI'd like to talk about a project.\n\n"
+                );
+              }}
               data-cursor=""
               data-mode="magnetic"
               {...contactCta}
             >
               <span className="contact-cta-text">
-                Get in touch <ArrowUpRight size={22} />
+                {mail.copied ? "Email copied" : "Get in touch"}{" "}
+                <ArrowUpRight size={22} />
               </span>
-              <small>abhidhautre@gmail.com</small>
+              <small>{EMAIL}</small>
             </motion.a>
 
             <a
               className="secondary-button"
               href="/Abhishek_Dhautre_Resume.pdf"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               data-cursor="OPEN ↗" data-mode="open"
             >
               View resume <ArrowUpRight size={15} />
             </a>
           </motion.div>
+
+          {mail.copied && (
+            <motion.p
+              className="contact-note"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              role="status"
+            >
+              No mail app is set up on this device — I&apos;ve copied{" "}
+              <strong>{EMAIL}</strong> to your clipboard instead.
+            </motion.p>
+          )}
           <motion.div className="socials" variants={riseUp}>
             {socials.map((s) => (
               <a key={s.name} href={s.href} target="_blank" rel="noreferrer" data-cursor="OPEN ↗" data-mode="open">

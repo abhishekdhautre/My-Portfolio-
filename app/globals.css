@@ -1250,4 +1250,33 @@ main > *:not(.ambient):not(.cursor-layer):not(.scroll-progress){position:relativ
   .project-preview{height:230px}
   .project-vector{width:72%;height:72%}
   .project .project-links a{opacity:1;transform:none}
+}/* ============================================================================
+   EMAIL CTA RESILIENCE
+   Visitors without a registered mail client get a dead mailto:. These styles
+   support the clipboard fallback and make the address selectable so there is
+   always a working way to make contact.
+   ============================================================================ */
+.contact-cta small{
+  user-select:all;
+  -webkit-user-select:all;
+  cursor:text;
+}
+.contact-note{
+  margin:18px 0 0;
+  max-width:520px;
+  font-size:11.5px;
+  line-height:1.7;
+  color:var(--muted);
+  border-left:1px solid var(--accent);
+  padding-left:14px;
+}
+.contact-note strong{
+  color:var(--ink);
+  font-weight:500;
+  user-select:all;
+  -webkit-user-select:all;
+}
+/* if the custom cursor ever fails to mount, never leave users with no pointer */
+@media(hover:none),(pointer:coarse){
+  body.has-custom-cursor,body.has-custom-cursor *{cursor:auto!important}
 }
