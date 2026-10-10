@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+.env*
+!.env.example
+.DS_Store
+*.tsbuildinfo
+
+# scratch / backup files - not part of the site
+app/*.backup.*
+test.txt
